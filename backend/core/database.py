@@ -13,6 +13,10 @@ db_url = settings.DATABASE_URL
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# asyncpg expects 'ssl=require' instead of 'sslmode=require'
+if "sslmode=require" in db_url:
+    db_url = db_url.replace("sslmode=require", "ssl=require")
+
 logger.info(f"Initializing async PostgreSQL engine with URL scheme: {db_url.split('@')[-1] if '@' in db_url else db_url}")
 engine = create_async_engine(
     db_url,
@@ -30,13 +34,21 @@ AsyncSessionLocal = async_sessionmaker(
 logger.info("Initializing async MongoDB client")
 mongo_client = AsyncIOMotorClient(settings.MONGODB_URL, serverSelectionTimeoutMS=2000)
 # Determine DB name from URI or default to 'devmind'
-mongo_db = mongo_client.get_default_database()
-if mongo_db is None or mongo_db.name == "admin":
+try:
+    mongo_db = mongo_client.get_default_database()
+    if mongo_db is None or mongo_db.name == "admin":
+        mongo_db = mongo_client.get_database("devmind")
+except Exception:
     mongo_db = mongo_client.get_database("devmind")
 
 # 3. Redis Client
 logger.info("Initializing async Redis client")
-redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=2.0)
+redis_url = settings.REDIS_URL
+if "upstash.io" in redis_url and redis_url.startswith("redis://"):
+    logger.info("Auto-converting Upstash Redis URL scheme to secure 'rediss://'")
+    redis_url = redis_url.replace("redis://", "rediss://", 1)
+
+redis_client = aioredis.from_url(redis_url, decode_responses=True, socket_timeout=2.0)
 
 
 # Dependency injection helper for DB sessions
