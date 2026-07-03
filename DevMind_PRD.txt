@@ -1,0 +1,260 @@
+
+DevMind
+AI Multi-Agent Code Intelligence Platform
+Product Requirements Document  |  v1.0
+
+
+
+Author: Gaurav Singh Rawat
+Full Stack Developer | IIT Patna MCA '28 | IBM AI Certified
+June 2026
+
+1. Project Overview
+DevMind is a production-grade, AI-powered Multi-Agent Code Intelligence Platform. It enables developers to connect any GitHub repository and instantly get automated code documentation, intelligent code review, natural language Q&amp;A about the codebase, and complexity analytics — all powered by specialized LangGraph agents running in parallel, with results streamed live to the frontend.
+
+This project is built as a portfolio-grade system to demonstrate full-stack + AI engineering skills across the complete modern Python developer stack.
+
+1.1 Problem Statement
+Developers waste significant time onboarding to new codebases, writing documentation, and performing manual code reviews. DevMind automates these cognitive tasks using specialized AI agents that collaborate to provide instant, actionable intelligence about any codebase.
+
+1.2 Target Users
+Developers onboarding to new or legacy codebases
+Engineering teams needing automated documentation and review
+Open-source maintainers managing large repositories
+
+1.3 Core Value Proposition
+4 specialized agents run in parallel — not sequential — reducing total analysis time
+Real-time streaming output via WebSockets — no waiting for a full response
+Production-deployed on AWS EC2 with Docker, S3 for file storage, GitHub Actions for CI/CD
+
+2. Complete Technology Stack
+
+Layer
+Technology
+Purpose
+Backend Framework
+Python + FastAPI
+Core REST API and WebSocket server
+Multi-Agent Engine
+LangGraph
+Stateful multi-agent orchestration
+LLM Orchestration
+LangChain
+Chains, prompts, and tool binding
+LLM Inference
+Groq + Llama-3
+Fast AI inference layer
+Embeddings
+Hugging Face Transformers (CodeBERT)
+Code semantic embeddings
+Vector Database
+ChromaDB
+Semantic code search and RAG memory
+Numerical Computing
+NumPy + Pandas
+Code metrics and data processing
+Classical ML
+scikit-learn
+Complexity scoring and clustering
+ORM
+SQLAlchemy
+PostgreSQL object-relational mapping
+Primary DB
+PostgreSQL
+Users, sessions, analysis results
+Secondary DB
+MongoDB
+Conversation history, agent logs
+Caching + Queue
+Redis + Celery
+Async task processing and caching
+Real-time
+WebSockets (FastAPI)
+Live streaming of agent outputs
+Frontend
+Next.js (React)
+Dashboard and results UI
+Containerization
+Docker + Docker Compose
+Dev and production environments
+Cloud Storage
+AWS S3
+Repository snapshots and file storage
+Cloud Hosting
+AWS EC2
+Production server deployment
+CI/CD
+GitHub Actions
+Automated test and deploy pipeline
+Testing
+pytest
+Unit and integration tests
+
+3. System Architecture
+
+3.1 High-Level Architecture
+The system follows a microservices-inspired architecture with a clear separation between the user-facing Next.js frontend, the FastAPI backend orchestration layer, and the specialized agent subsystems.
+
+Request Flow:
+User submits GitHub repo URL via Next.js frontend
+Next.js sends POST request to FastAPI /analyze endpoint
+FastAPI validates request, stores job in PostgreSQL, pushes task to Celery via Redis
+Celery worker picks up task and triggers LangGraph multi-agent pipeline
+4 agents run in parallel: Doc Agent, Review Agent, Q&amp;A Agent, Analytics Agent
+Each agent streams partial results back through WebSocket connection to frontend
+Final results persisted to PostgreSQL + MongoDB; files stored in AWS S3
+GitHub Actions runs tests and auto-deploys to AWS EC2 on push to main
+
+3.2 Agent Architecture (LangGraph)
+Each agent is a standalone LangGraph node with its own system prompt, tool bindings, and output schema. The orchestrator node manages state and routes results back to the WebSocket layer.
+
+Agent
+Trigger
+Output
+Key Tools Used
+Doc Agent
+Repo files fetched
+README.md, API docs
+LangChain + Groq + ChromaDB
+Review Agent
+Code parsed
+Issues, suggestions per file
+LangChain + scikit-learn
+Q&amp;A Agent
+User query received
+Natural language answer
+ChromaDB RAG + Groq
+Analytics Agent
+AST parsed
+Complexity scores, metrics dashboard
+NumPy + Pandas + scikit-learn
+
+3.3 Folder Structure
+
+devmind/ ├── backend/ │   ├── main.py                  # FastAPI app entry point │   ├── api/ │   │   ├── routes/ │   │   │   ├── analyze.py       # POST /analyze endpoint │   │   │   ├── ws.py            # WebSocket /ws/{job_id} │   │   │   └── results.py       # GET /results/{job_id} │   ├── agents/ │   │   ├── graph.py             # LangGraph state machine │   │   ├── doc_agent.py         # Documentation agent │   │   ├── review_agent.py      # Code review agent │   │   ├── qa_agent.py          # Q&amp;A agent │   │   └── analytics_agent.py  # Metrics agent │   ├── services/ │   │   ├── github_service.py    # GitHub API integration │   │   ├── embedding_service.py # Hugging Face embeddings │   │   ├── vector_store.py      # ChromaDB operations │   │   ├── s3_service.py        # AWS S3 operations │   │   └── celery_tasks.py      # Celery async tasks │   ├── models/ │   │   ├── pg_models.py         # SQLAlchemy PostgreSQL models │   │   └── mongo_models.py      # MongoDB schemas │   ├── core/ │   │   ├── config.py            # ENV config (pydantic settings) │   │   └── database.py          # DB connections │   └── tests/ │       ├── test_agents.py       # Agent unit tests (pytest) │       └── test_api.py          # API integration tests ├── frontend/ │   ├── app/ │   │   ├── page.tsx             # Home: repo input │   │   ├── dashboard/[id]/ │   │   │   └── page.tsx         # Live results dashboard │   │   └── components/ │   │       ├── AgentPanel.tsx   # Individual agent output │   │       └── MetricsChart.tsx # Analytics visualizations ├── docker/ │   ├── Dockerfile.backend │   ├── Dockerfile.frontend │   └── docker-compose.yml ├── .github/ │   └── workflows/ │       └── deploy.yml           # GitHub Actions CI/CD └── README.md
+
+4. Feature Requirements
+
+4.1 Core Features (MVP)
+
+Feature
+Description
+Priority
+GitHub Repo Input
+User submits a public GitHub repo URL to trigger analysis
+P0
+Doc Agent
+Auto-generates README and inline API documentation from source code
+P0
+Review Agent
+Identifies code smells, missing error handling, security flags per file
+P0
+Q&amp;A Agent
+Answers natural language questions about the codebase using RAG
+P0
+Analytics Agent
+Computes cyclomatic complexity, file size, dependency metrics via NumPy/Pandas
+P0
+Live Streaming
+WebSocket connection streams each agent's output in real-time
+P0
+Results Dashboard
+Next.js UI showing all 4 agent outputs in separate panels
+P0
+Job History
+PostgreSQL stores all past analysis jobs per user session
+P1
+File Download
+Generated docs downloadable as .md files; stored in AWS S3
+P1
+Auth (JWT)
+User registration, login, JWT-secured API endpoints
+P1
+Async Queue
+Celery + Redis handles concurrent jobs without blocking FastAPI
+P1
+Docker Deploy
+Full system runs via docker-compose for local and production
+P1
+GitHub Actions CI
+Auto-run pytest suite on PR; auto-deploy to EC2 on merge to main
+P2
+
+7. Agent Design Details
+
+7.1 Doc Agent
+Input: Raw source files fetched from GitHub API
+Process: LangChain prompt chain reads each file, extracts function signatures, class definitions, and module purposes
+Output: Structured README.md with Project Overview, Installation, API Reference sections
+Storage: Final .md file uploaded to AWS S3; S3 key saved in jobs table
+
+7.2 Review Agent
+Input: Parsed source files + file-level metrics from Analytics Agent
+Process: LangChain reviews each file against a rule set (error handling, security, naming, complexity)
+Output: JSON array of issues: { file, line, severity, message, suggestion }
+scikit-learn: Used for anomaly detection on complexity scores to flag outlier files
+
+7.3 Q&amp;A Agent (RAG-powered)
+Input: User natural language query + ChromaDB vector store of the repo
+Process: Query embedded via Hugging Face CodeBERT → top-k chunks retrieved from ChromaDB → Groq/Llama-3 generates answer with context
+Output: Natural language answer with source file + line references
+Memory: Full Q&amp;A history stored in MongoDB qa_history collection
+
+7.4 Analytics Agent
+Input: All source files parsed to Abstract Syntax Tree (AST) via Python ast module
+NumPy: Matrix operations for dependency graph analysis
+Pandas: DataFrame construction for per-file metrics (LOC, complexity, function count)
+scikit-learn: KMeans clustering to group files by complexity tier
+Output: Dashboard-ready JSON: { file_metrics[], complexity_distribution, top_issues[], tech_debt_score }
+
+8. Resume Skills Gained
+
+After completing DevMind, the following skills can be added to Wellfound, LinkedIn, and resume:
+
+Category
+Skills
+Language &amp; Backend
+Python, FastAPI, SQLAlchemy, Pydantic, asyncio
+AI / LLM
+LangGraph, LangChain, Groq, Llama-3, Multi-Agent AI, RAG
+ML &amp; Data
+Hugging Face Transformers, NumPy, Pandas, scikit-learn
+Databases
+PostgreSQL, MongoDB, ChromaDB (Vector DB), Redis
+Infrastructure
+Docker, Docker Compose, AWS EC2, AWS S3, GitHub Actions
+Real-time
+WebSockets, Celery (async task queue)
+Testing
+pytest (unit + integration)
+Existing (strengthened)
+Next.js, REST APIs, JWT Auth, MongoDB
+
+9. Non-Functional Requirements
+
+Requirement
+Target
+API Response Time
+&lt; 200ms for REST endpoints (excluding agent processing)
+Agent Processing Time
+&lt; 90 seconds for a repo with up to 50 files
+WebSocket Latency
+First chunk streamed within 3 seconds of job start
+Concurrent Jobs
+Celery supports minimum 5 concurrent analysis jobs
+Test Coverage
+Minimum 70% coverage via pytest
+Uptime
+99% on AWS EC2 (single instance for portfolio)
+
+10. Environment Variables
+
+# .env DATABASE_URL=postgresql://user:pass@localhost:5432/devmind MONGODB_URL=mongodb://localhost:27017/devmind REDIS_URL=redis://localhost:6379 GROQ_API_KEY=your_groq_api_key HUGGINGFACE_API_KEY=your_hf_token AWS_ACCESS_KEY_ID=your_aws_key AWS_SECRET_ACCESS_KEY=your_aws_secret AWS_S3_BUCKET=devmind-storage AWS_EC2_REGION=ap-south-1 GITHUB_TOKEN=your_github_pat JWT_SECRET=your_jwt_secret CHROMADB_PATH=./chroma_db
+
+11. Interview Story Template
+
+Use this when asked 'Tell me about a project you built':
+
+"I built DevMind, a multi-agent AI platform where 4 specialized LangGraph agents run in parallel to analyze GitHub repositories. The Doc Agent auto-generates README and API docs, the Review Agent flags code issues using LangChain, the Q&amp;A Agent answers questions about the codebase using ChromaDB RAG with Hugging Face embeddings, and the Analytics Agent computes complexity metrics using NumPy, Pandas, and scikit-learn. The FastAPI backend uses Celery and Redis for async job processing, streams results live via WebSockets to a Next.js frontend, and is fully containerized with Docker and deployed on AWS EC2 with a GitHub Actions CI/CD pipeline."
+
+That one answer covers: Python, FastAPI, LangGraph, LangChain, ChromaDB, Hugging Face, NumPy, Pandas, scikit-learn, WebSockets, Redis, Celery, Next.js, Docker, AWS EC2, GitHub Actions — every keyword in a modern Python + AI full-stack JD.

@@ -1,0 +1,30 @@
+# Web Backend & API Server
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic-settings>=2.2.1
+python-dotenv>=1.0.1
+
+# Database ORMs & Drivers
+sqlalchemy>=2.0.28
+asyncpg>=0.29.0
+pymongo>=4.6.2
+motor>=3.3.2
+redis>=5.0.3
+
+# Asynchronous Task Queue
+celery>=5.3.6
+
+# AI, Multi-Agent & RAG Orchestration
+langchain>=0.1.12
+langgraph>=0.0.31
+chromadb>=0.4.24
+sentence-transformers>=2.5.1
+
+# Data Science, Complexity Scoring & Clustering
+numpy>=1.26.4
+pandas>=2.2.1
+scikit-learn>=1.4.1.post1
+
+# Testing & Linting
+pytest>=8.1.1
+pytest-asyncio>=0.23.5
