@@ -2,9 +2,9 @@ name: DevMind CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   # 1. Backend Testing
