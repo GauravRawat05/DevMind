@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+pytestmark = pytest.mark.asyncio
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.database import engine, AsyncSessionLocal
 from backend.main import app
 from backend.models.pg_models import User, Job
+import pytest_asyncio
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def cleanup_users() -> None:
     """Clean up any test users created during tests."""
     yield
@@ -25,7 +28,6 @@ async def cleanup_users() -> None:
         pass
 
 
-@pytest.mark.asyncio
 class TestAuthAPI:
     """Verify that the FastAPI Auth endpoints perform correctly."""
 

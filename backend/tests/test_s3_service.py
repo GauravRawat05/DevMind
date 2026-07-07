@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+pytestmark = pytest.mark.asyncio
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,9 +13,10 @@ from backend.core.database import engine, AsyncSessionLocal
 from backend.main import app
 from backend.models.pg_models import Job
 from backend.services.s3_service import storage_service
+import pytest_asyncio
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def cleanup_test_jobs() -> None:
     """Clean up any test jobs created during tests and clear mock S3 files."""
     yield
@@ -31,7 +34,7 @@ async def cleanup_test_jobs() -> None:
         pass
 
 
-def test_s3_service_file_operations() -> None:
+async def test_s3_service_file_operations() -> None:
     """Verify mock S3 service file upload, download, delete, and list operations."""
     key = "test_s3_service/test_file.txt"
     content = "Hello, local S3 mock storage!"
@@ -57,7 +60,6 @@ def test_s3_service_file_operations() -> None:
         storage_service.download_file(key)
 
 
-@pytest.mark.asyncio
 async def test_download_endpoint() -> None:
     """Verify that GET /api/download/{job_id}/doc fetches correct content from mock S3."""
     transport = ASGITransport(app=app)

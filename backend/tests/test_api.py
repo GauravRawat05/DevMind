@@ -138,7 +138,8 @@ class TestAPIEndpoints:
         from backend.models.pg_models import User
         from sqlalchemy import select
 
-        email = "test_api_auth_workflow@example.com"
+        import uuid
+        email = f"test_api_auth_{uuid.uuid4().hex[:8]}@example.com"
         password = "password123"
         repo_url = "https://github.com/tiangolo/fastapi"
         job_id = None

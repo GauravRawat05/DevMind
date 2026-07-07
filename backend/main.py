@@ -59,6 +59,8 @@ app.include_router(auth_router)
 @app.get("/")
 async def root():
     return {
+        "name": "DevMind API",
+        "status": "online",
         "message": "Welcome to the DevMind AI API Platform. Go to /docs for API schema documentation."
     }
 
@@ -74,11 +76,15 @@ async def health_check(response: Response):
     if not all_connected:
         response.status_code = 503
 
+    db_status = {
+        "postgresql": "connected" if postgres_ok else "disconnected",
+        "postgres": "connected" if postgres_ok else "disconnected",
+        "mongodb": "connected" if mongodb_ok else "disconnected",
+        "redis": "connected" if redis_ok else "disconnected"
+    }
+
     return {
         "status": "healthy" if all_connected else "unhealthy",
-        "databases": {
-            "postgres": "connected" if postgres_ok else "disconnected",
-            "mongodb": "connected" if mongodb_ok else "disconnected",
-            "redis": "connected" if redis_ok else "disconnected"
-        }
+        "services": db_status,
+        "databases": db_status
     }
