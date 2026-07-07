@@ -6,10 +6,10 @@
 - [x] **Sub-plan 1.3:** Setup Python package managers, dependencies, and write simple health check.
 
 ## Phase 2: Core Agent Pipeline (LangGraph & LangChain)
-- [ ] **Sub-plan 2.1:** Implement Github parser service to download public repos.
-- [ ] **Sub-plan 2.2:** Setup local embedding service with sentence-transformers and ChromaDB.
-- [ ] **Sub-plan 2.3:** Build LangGraph orchestrator graph with 4 parallel agent nodes.
-- [ ] **Sub-plan 2.4:** Write AST parser logic in Analytics Agent (Pandas + NumPy complexity metrics).
+- [x] **Sub-plan 2.1:** Implement Github parser service to download public repos.
+- [x] **Sub-plan 2.2:** Setup local embedding service with sentence-transformers and ChromaDB.
+- [x] **Sub-plan 2.3:** Build LangGraph orchestrator graph with 4 parallel agent nodes.
+- [x] **Sub-plan 2.4:** Write AST parser logic in Analytics Agent (Pandas + NumPy complexity metrics).
 
 ## Phase 3: Backend API, WebSockets, & Asynchronous Task Queue
 - [ ] **Sub-plan 3.1:** Create FastAPI REST endpoints (submit repo, read results).
