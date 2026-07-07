@@ -68,7 +68,7 @@ jobs:
         AWS_S3_BUCKET: devmind-testing-bucket
         CHROMADB_PATH: ./chroma_db_test
       run: |
-        pytest backend/tests/ -v
+        python -m pytest backend/tests/ -v
 
   # 2. Frontend Build Verification
   build-frontend:
@@ -86,7 +86,7 @@ jobs:
     - name: Install Frontend Dependencies
       run: |
         cd frontend
-        npm ci
+        npm install
 
     - name: Build Next.js Application
       run: |
