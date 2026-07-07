@@ -1,10 +1,14 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
-from backend.core.database import check_postgres, check_mongodb, check_redis
+from backend.core.database import check_postgres, check_mongodb, check_redis, engine
+from backend.models.pg_models import Base
 from backend.api.routes.analyze import router as analyze_router
 from backend.api.routes.results import router as results_router
 from backend.api.routes.ws import router as ws_router
+from backend.api.routes.download import router as download_router
+from backend.api.routes.auth import router as auth_router
 
 # Configure Logging
 logging.basicConfig(
@@ -14,10 +18,25 @@ logging.basicConfig(
 logger = logging.getLogger("devmind.main")
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Create tables in Neon PostgreSQL if they do not exist
+    try:
+        logger.info("Starting up FastAPI application. Creating database tables if they do not exist...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("PostgreSQL database tables verified/created successfully.")
+    except Exception as exc:
+        logger.critical("Failed to create database tables during startup: %s", exc)
+    yield
+    # Shutdown (no cleanup required for now)
+
+
 app = FastAPI(
     title="DevMind AI Multi-Agent Platform API",
     description="REST API and WebSocket server for the DevMind Multi-Agent code intelligence platform.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS settings
@@ -33,6 +52,8 @@ app.add_middleware(
 app.include_router(analyze_router)
 app.include_router(results_router)
 app.include_router(ws_router)
+app.include_router(download_router)
+app.include_router(auth_router)
 
 
 @app.get("/")

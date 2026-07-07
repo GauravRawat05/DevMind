@@ -23,6 +23,6 @@
 - [x] **Sub-plan 4.4:** Integrate charting dashboard (complexity, LOC tiering).
 
 ## Phase 5: Mock S3, Auth, & CI/CD
-- [ ] **Sub-plan 5.1:** Add S3 local file manager wrapper.
-- [ ] **Sub-plan 5.2:** Add JWT login/register functionality in Postgres.
-- [ ] **Sub-plan 5.3:** Create Docker configurations and GitHub Actions workflows.
+- [x] **Sub-plan 5.1:** Add S3 local file manager wrapper.
+- [x] **Sub-plan 5.2:** Add JWT login/register functionality in Postgres.
+- [x] **Sub-plan 5.3:** Create Docker configurations and GitHub Actions workflows.

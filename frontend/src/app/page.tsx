@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
+import AuthModal from "./components/AuthModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -18,6 +19,24 @@ export default function HomePage() {
   const [repoUrl, setRepoUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Auth state
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load auth from local storage on mount
+    const email = localStorage.getItem("devmind_email");
+    if (email) {
+      setUserEmail(email);
+    }
+  }, []);
+
+  function handleLogout() {
+    localStorage.removeItem("devmind_token");
+    localStorage.removeItem("devmind_email");
+    setUserEmail(null);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -35,9 +54,15 @@ export default function HomePage() {
 
     setLoading(true);
     try {
+      const token = localStorage.getItem("devmind_token");
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${API_BASE}/api/analyze`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ repo_url: trimmed }),
       });
 
@@ -57,6 +82,24 @@ export default function HomePage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* Auth Navigation Header */}
+      <header className={styles.header}>
+        <div className={styles.authControls}>
+          {userEmail ? (
+            <>
+              <span className={styles.userEmail}>👤 {userEmail}</span>
+              <button className={styles.authBtn} onClick={handleLogout}>
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <button className={styles.authBtn} onClick={() => setIsAuthOpen(true)}>
+              Sign In
+            </button>
+          )}
+        </div>
+      </header>
+
       <div className={styles.hero}>
         <h1 className={styles.logo}>DevMind</h1>
         <p className={styles.tagline}>
@@ -119,6 +162,12 @@ export default function HomePage() {
           </p>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={(email) => setUserEmail(email)}
+      />
     </div>
   );
 }

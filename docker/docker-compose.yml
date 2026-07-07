@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: devmind_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: devmind_user
+      POSTGRES_PASSWORD: devmind_password
+      POSTGRES_DB: devmind_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - devmind_net
+
+  # 2. Redis Cache & Broker
+  redis:
+    image: redis:7-alpine
+    container_name: devmind_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - devmind_net
+
+  # 3. FastAPI Backend API
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: devmind_backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://devmind_user:devmind_password@postgres:5432/devmind_db
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMADB_PATH=/app/chroma_db
+      # Load other secrets from .env if present
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/app/chroma_db
+      - s3_mock_data:/app/local_s3_mock
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - devmind_net
+
+  # 4. Celery Worker (uses same backend image)
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: devmind_celery_worker
+    restart: always
+    command: celery -A backend.services.celery_tasks.celery_app worker -P solo --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://devmind_user:devmind_password@postgres:5432/devmind_db
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMADB_PATH=/app/chroma_db
+    env_file:
+      - ../.env
+    volumes:
+      - chroma_data:/app/chroma_db
+      - s3_mock_data:/app/local_s3_mock
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - devmind_net
+
+  # 5. Next.js Frontend
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: devmind_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - devmind_net
+
+volumes:
+  postgres_data:
+  chroma_data:
+  s3_mock_data:
+
+networks:
+  devmind_net:
+    driver: bridge
