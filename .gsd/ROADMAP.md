@@ -17,10 +17,10 @@
 - [x] **Sub-plan 3.3:** Implement WebSockets for streaming agent outputs in real-time.
 
 ## Phase 4: Next.js Frontend Development
-- [ ] **Sub-plan 4.1:** Setup Next.js app with Vanilla CSS modules.
-- [ ] **Sub-plan 4.2:** Create homepage with Repo URL submission.
-- [ ] **Sub-plan 4.3:** Build real-time streaming dashboard for the 4 agent results.
-- [ ] **Sub-plan 4.4:** Integrate charting dashboard (complexity, LOC tiering).
+- [x] **Sub-plan 4.1:** Setup Next.js app with Vanilla CSS modules.
+- [x] **Sub-plan 4.2:** Create homepage with Repo URL submission.
+- [x] **Sub-plan 4.3:** Build real-time streaming dashboard for the 4 agent results.
+- [x] **Sub-plan 4.4:** Integrate charting dashboard (complexity, LOC tiering).
 
 ## Phase 5: Mock S3, Auth, & CI/CD
 - [ ] **Sub-plan 5.1:** Add S3 local file manager wrapper.
