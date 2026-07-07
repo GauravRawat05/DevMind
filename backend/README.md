@@ -50,10 +50,30 @@ python backend/scripts/run_pipeline_test.py --repo https://github.com/KennethRei
 
 ---
 
+## 🌐 FastAPI REST Server & Asynchronous Workers (Phase 3)
+
+In Phase 3, we wrapped the multi-agent engine in a distributed REST API and WebSocket gateway:
+
+### 🔌 API Endpoints
+- `POST /api/analyze` - Submit a repository for analysis (returns a unique job UUID).
+- `GET /api/results/{job_id}` - Retrieve the completed multi-agent analysis report.
+- `WS /ws/{job_id}` - Establish a real-time WebSocket connection to stream individual agent progress logs and step outcomes.
+- `GET/POST /api/results/{job_id}/qa` - Context-aware interactive Q&A session on the analyzed codebase.
+
+### ⚙️ Celery & Redis Task Queue
+To prevent blocking the HTTP server thread, analysis requests are offloaded to **Celery background workers**:
+- **Message Broker:** Redis (using Upstash Redis for cloud environments).
+- **Progress Tracking:** Workers publish step progress updates to Redis Pub/Sub, which is broadcasted to connected clients via WebSockets.
+
+---
+
 ## 🧪 Unit & Integration Tests
-We verify the agents, embeddings, and vector indexing using `pytest`:
+We verify the agents, API, and WebSocket server using `pytest`:
 
 ```bash
-# Run all core pipeline tests
+# Run core pipeline tests
 pytest backend/tests/test_github_service.py backend/tests/test_vector_store.py backend/tests/test_graph.py backend/tests/test_analytics.py
+
+# Run REST API & WebSocket integration tests
+pytest backend/tests/test_api.py backend/tests/test_ws.py
 ```

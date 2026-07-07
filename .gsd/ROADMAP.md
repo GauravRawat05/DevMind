@@ -12,9 +12,9 @@
 - [x] **Sub-plan 2.4:** Write AST parser logic in Analytics Agent (Pandas + NumPy complexity metrics).
 
 ## Phase 3: Backend API, WebSockets, & Asynchronous Task Queue
-- [ ] **Sub-plan 3.1:** Create FastAPI REST endpoints (submit repo, read results).
-- [ ] **Sub-plan 3.2:** Configure Redis + Celery task queue for background workers.
-- [ ] **Sub-plan 3.3:** Implement WebSockets for streaming agent outputs in real-time.
+- [x] **Sub-plan 3.1:** Create FastAPI REST endpoints (submit repo, read results).
+- [x] **Sub-plan 3.2:** Configure Redis + Celery task queue for background workers.
+- [x] **Sub-plan 3.3:** Implement WebSockets for streaming agent outputs in real-time.
 
 ## Phase 4: Next.js Frontend Development
 - [ ] **Sub-plan 4.1:** Setup Next.js app with Vanilla CSS modules.
