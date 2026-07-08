@@ -25,7 +25,7 @@ class EmbeddingService:
     or the request fails.
     """
 
-    MODEL_NAME: str = "all-MiniLM-L6-v2"
+    MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     def __init__(self) -> None:
         self._model: SentenceTransformer | None = None
