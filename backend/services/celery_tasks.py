@@ -41,6 +41,12 @@ celery_app = Celery(
     backend=redis_url,
 )
 
+import os
+import sys
+
+# Detect if running under pytest
+is_testing = "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None
+
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
@@ -50,6 +56,8 @@ celery_app.conf.update(
     task_track_started=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    task_always_eager=is_testing,
+    task_eager_propagates=is_testing,
 )
 
 
