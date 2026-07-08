@@ -86,6 +86,8 @@ jobs:
     - name: Install Frontend Dependencies
       run: |
         cd frontend
+        npm config set fetch-retries 5
+        npm config set fetch-retry-mintimeout 20000
         npm install
 
     - name: Build Next.js Application
