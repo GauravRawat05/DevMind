@@ -33,48 +33,40 @@ class EmbeddingService:
     def _embed_via_hf_api(self, texts: list[str]) -> list[list[float]] | None:
         """Attempt to generate embeddings via Hugging Face Inference API."""
         import os
-        import urllib.request
-        import json
+        from huggingface_hub import InferenceClient
 
         hf_key = os.getenv("HUGGINGFACE_API_KEY")
         if not hf_key or hf_key.startswith("mock_"):
             return None
 
-        api_url = f"https://api-inference.huggingface.co/models/sentence-transformers/{self.MODEL_NAME}"
-        headers = {
-            "Authorization": f"Bearer {hf_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "DevMind/1.0"
-        }
-
         results: list[list[float]] = []
         hf_batch_size = 50  # Smaller sub-batches to prevent API size/rate limit issues
 
         try:
+            client = InferenceClient(api_key=hf_key)
             for j in range(0, len(texts), hf_batch_size):
                 sub_batch = texts[j : j + hf_batch_size]
-                payload = {
-                    "inputs": sub_batch,
-                    "options": {"wait_for_model": True}
-                }
-                req = urllib.request.Request(
-                    api_url,
-                    headers=headers,
-                    data=json.dumps(payload).encode("utf-8"),
-                    method="POST"
+                embeddings_np = client.feature_extraction(
+                    sub_batch,
+                    model=self.MODEL_NAME
                 )
-                with urllib.request.urlopen(req, timeout=30) as res:
-                    response_data = json.loads(res.read().decode("utf-8"))
-                    if isinstance(response_data, list) and len(response_data) > 0:
-                        if isinstance(response_data[0], list):
-                            results.extend(response_data)
-                        elif isinstance(response_data[0], float):
-                            results.append(response_data)
+                
+                # Convert numpy array to list
+                if hasattr(embeddings_np, "tolist"):
+                    embeddings_list = embeddings_np.tolist()
+                else:
+                    embeddings_list = list(embeddings_np)
+
+                if len(embeddings_list) > 0:
+                    if isinstance(embeddings_list[0], float):
+                        # It's a single 1D vector (list of floats)
+                        results.append(embeddings_list)
                     else:
-                        raise ValueError(f"Unexpected response format: {response_data}")
+                        # It's a 2D matrix (list of lists of floats)
+                        results.extend(embeddings_list)
             return results
         except Exception as e:
-            logger.warning("Failed to generate embeddings via Hugging Face API, falling back to local: %s", e)
+            logger.warning("Failed to generate embeddings via Hugging Face API SDK, falling back to local: %s", e)
         return None
 
     def _load_model(self) -> SentenceTransformer:
