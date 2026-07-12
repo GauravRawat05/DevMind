@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any
 
 from langchain_core.output_parsers import StrOutputParser
@@ -181,21 +182,37 @@ def run_review_agent(state: dict[str, Any]) -> dict[str, Any]:
 
     chain = prompt | _get_llm() | StrOutputParser()
 
-    try:
-        raw_response = chain.invoke({"code": code_block})
-    except Exception:
-        logger.exception("LLM call failed during code review")
-        return {
-            "review_output": [
-                {
-                    "file": "N/A",
-                    "line": None,
-                    "severity": "info",
-                    "message": "Code review failed due to an LLM error.",
-                    "suggestion": "Retry the analysis.",
+    # Retry with exponential backoff for Groq rate-limit (429) errors.
+    # The free tier allows only 6000 TPM and all 4 agents fire concurrently.
+    max_retries = 4
+    raw_response = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            raw_response = chain.invoke({"code": code_block})
+            break  # success
+        except Exception as exc:
+            is_rate_limit = "rate_limit" in str(exc).lower() or "429" in str(exc)
+            if is_rate_limit and attempt < max_retries:
+                wait = 10 * attempt  # 10s, 20s, 30s
+                logger.warning(
+                    "Review agent hit rate limit (attempt %d/%d). "
+                    "Retrying in %ds...",
+                    attempt, max_retries, wait,
+                )
+                time.sleep(wait)
+            else:
+                logger.exception("LLM call failed during code review (attempt %d/%d)", attempt, max_retries)
+                return {
+                    "review_output": [
+                        {
+                            "file": "N/A",
+                            "line": None,
+                            "severity": "info",
+                            "message": "Code review failed due to an LLM error.",
+                            "suggestion": "Retry the analysis.",
+                        }
+                    ]
                 }
-            ]
-        }
 
     issues = _parse_review_response(raw_response)
     logger.info("Review agent found %d issues", len(issues))

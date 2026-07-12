@@ -6,6 +6,7 @@ comprehensive README.md for the codebase.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from langchain_core.output_parsers import StrOutputParser
@@ -122,11 +123,26 @@ def run_doc_agent(state: dict[str, Any]) -> dict[str, Any]:
 
     chain = prompt | _get_llm() | StrOutputParser()
 
-    try:
-        readme = chain.invoke({"file_summary": summary})
-    except Exception:
-        logger.exception("LLM call failed during documentation generation")
-        readme = "# Project\n\n_Documentation generation failed. Please retry._\n"
+    # Retry with exponential backoff for Groq rate-limit (429) errors.
+    max_retries = 4
+    readme = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            readme = chain.invoke({"file_summary": summary})
+            break  # success
+        except Exception as exc:
+            is_rate_limit = "rate_limit" in str(exc).lower() or "429" in str(exc)
+            if is_rate_limit and attempt < max_retries:
+                wait = 10 * attempt  # 10s, 20s, 30s
+                logger.warning(
+                    "Doc agent hit rate limit (attempt %d/%d). Retrying in %ds...",
+                    attempt, max_retries, wait,
+                )
+                time.sleep(wait)
+            else:
+                logger.exception("LLM call failed during documentation generation (attempt %d/%d)", attempt, max_retries)
+                readme = "# Project\n\n_Documentation generation failed. Please retry._\n"
+                break
 
     logger.info("Doc agent produced README of %d characters", len(readme))
     return {"doc_output": readme}

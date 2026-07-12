@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type MouseEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import AgentPanel from "@/app/components/AgentPanel";
@@ -52,9 +52,11 @@ export default function DashboardPage() {
     analytics: null,
   });
   const [qaInitialAnswer, setQaInitialAnswer] = useState<string>("");
+  const [showReportDropdown, setShowReportDropdown] = useState(false);
 
   const logEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reportDropdownRef = useRef<HTMLDivElement>(null);
 
   /* -- helpers -------------------------------------------------------- */
 
@@ -171,6 +173,25 @@ export default function DashboardPage() {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
+  /* close report dropdown on outside click */
+  useEffect(() => {
+    function handleClickOutside(e: Event) {
+      if (
+        reportDropdownRef.current &&
+        !reportDropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowReportDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function handleDownloadReport(format: "pdf" | "docx") {
+    window.open(`${API_BASE}/api/download/${jobId}/report?format=${format}`, "_blank");
+    setShowReportDropdown(false);
+  }
+
   /* -- agent panel status -------------------------------------------- */
 
   function agentStatus(
@@ -204,7 +225,37 @@ export default function DashboardPage() {
         <h1 className={styles.pageTitle}>
           <span className="gradient-text">Analysis Dashboard</span>
         </h1>
-        {repoUrl && <span className={styles.repoChip}>🔗 {repoUrl}</span>}
+        <div className={styles.topBarRight}>
+          {overallStatus === "completed" && (
+            <div className={styles.reportDropdownWrapper} ref={reportDropdownRef}>
+              <button
+                className={styles.reportBtn}
+                onClick={() => setShowReportDropdown((prev) => !prev)}
+              >
+                📄 Download Report
+              </button>
+              {showReportDropdown && (
+                <div className={styles.reportDropdown}>
+                  <button
+                    className={styles.reportOption}
+                    onClick={() => handleDownloadReport("pdf")}
+                  >
+                    <span className={styles.reportOptionIcon}>📕</span>
+                    PDF Report (.pdf)
+                  </button>
+                  <button
+                    className={styles.reportOption}
+                    onClick={() => handleDownloadReport("docx")}
+                  >
+                    <span className={styles.reportOptionIcon}>📘</span>
+                    Word Document (.docx)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {repoUrl && <span className={styles.repoChip}>🔗 {repoUrl}</span>}
+        </div>
       </div>
 
       {/* Progress log */}

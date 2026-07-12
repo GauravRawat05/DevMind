@@ -154,3 +154,104 @@
 }
 .errorIcon { font-size: 3rem; }
 .errorText { color: var(--text-secondary); font-size: 0.95rem; }
+
+/* Top bar right section */
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+/* Download Report button */
+.reportDropdownWrapper {
+  position: relative;
+}
+
+.reportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #00f2fe;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 242, 254, 0.08) 0%,
+    rgba(79, 172, 254, 0.08) 100%
+  );
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-smooth);
+  backdrop-filter: blur(6px);
+}
+.reportBtn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 242, 254, 0.18) 0%,
+    rgba(79, 172, 254, 0.18) 100%
+  );
+  border-color: rgba(0, 242, 254, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 242, 254, 0.15);
+}
+
+/* Format dropdown */
+.reportDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: hsla(230, 22%, 12%, 0.95);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: dropdownFadeIn 0.2s var(--ease-smooth) both;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reportOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.reportOption:hover {
+  background: rgba(0, 242, 254, 0.1);
+  color: #00f2fe;
+}
+.reportOption:first-child {
+  margin-bottom: 2px;
+}
+
+.reportOptionIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}

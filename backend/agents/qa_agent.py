@@ -6,6 +6,7 @@ feeds them as context to the Groq LLM, and returns a natural-language answer.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from langchain_core.output_parsers import StrOutputParser
@@ -102,11 +103,26 @@ def run_qa_agent(state: dict[str, Any]) -> dict[str, Any]:
 
     chain = prompt | _get_llm() | StrOutputParser()
 
-    try:
-        answer = chain.invoke({"context": context, "question": query})
-    except Exception:
-        logger.exception("LLM call failed during Q&A")
-        answer = "Sorry, I was unable to generate an answer. Please try again."
+    # Retry with exponential backoff for Groq rate-limit (429) errors.
+    max_retries = 4
+    answer = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            answer = chain.invoke({"context": context, "question": query})
+            break  # success
+        except Exception as exc:
+            is_rate_limit = "rate_limit" in str(exc).lower() or "429" in str(exc)
+            if is_rate_limit and attempt < max_retries:
+                wait = 10 * attempt  # 10s, 20s, 30s
+                logger.warning(
+                    "QA agent hit rate limit (attempt %d/%d). Retrying in %ds...",
+                    attempt, max_retries, wait,
+                )
+                time.sleep(wait)
+            else:
+                logger.exception("LLM call failed during Q&A (attempt %d/%d)", attempt, max_retries)
+                answer = "Sorry, I was unable to generate an answer. Please try again."
+                break
 
     logger.info("QA agent produced answer of %d characters", len(answer))
     return {"qa_output": answer}

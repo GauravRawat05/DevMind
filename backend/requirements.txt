@@ -37,3 +37,7 @@ pytest-asyncio>=0.23.5
 bcrypt>=4.1.2
 PyJWT>=2.8.0
 email-validator>=2.1.0.post1
+
+# Report Generation (PDF & DOCX export)
+fpdf2>=2.8.0
+python-docx>=1.1.0
