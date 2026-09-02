@@ -28,37 +28,25 @@ _MAX_FILES = 5
 _MAX_CONTENT_CHARS = 1200
 
 _SYSTEM_PROMPT = """\
-You are an expert code reviewer.  You will receive source code from a
-repository.  Analyse every file and report issues you find.
+You are an expert automated code reviewer. You will receive source code from a repository.
+Analyze every file and report security vulnerabilities, missing error handling, code smells, and potential bugs.
 
-Look for:
-- **Security vulnerabilities** (injection, hardcoded secrets, insecure
-  defaults, missing input validation)
-- **Missing error handling** (bare excepts, swallowed exceptions, missing
-  null checks)
-- **Code smells** (duplicated logic, god classes, excessive nesting,
-  functions that are too long)
-- **Naming conventions** (inconsistent style, single-letter variables in
-  non-trivial scopes, misleading names)
-- **Potential bugs** (off-by-one errors, race conditions, incorrect type
-  usage, mutable default arguments)
+CRITICAL INSTRUCTION:
+Your entire response must be ONLY a valid JSON array. Do not include any text, reasoning, thoughts, or markdown formatting before or after the JSON.
 
-Respond ONLY with a JSON array.  Each element must have exactly these keys:
-
-```json
+JSON Schema:
 [
-  {{
-    "file": "<file path>",
-    "line": <line number or null>,
-    "severity": "critical" | "warning" | "info",
-    "message": "<short description of the issue>",
-    "suggestion": "<actionable fix recommendation>"
-  }}
+  {
+    "file": "path/to/file.py",
+    "line": 12,
+    "severity": "critical",
+    "message": "Brief description of the issue",
+    "suggestion": "Actionable fix recommendation"
+  }
 ]
-```
 
-If you find no issues, return an empty array: `[]`.
-Do NOT include any text outside the JSON array.
+Allowed severity values: "critical", "warning", "info".
+If you find no issues, return an empty array: []
 """
 
 
@@ -69,9 +57,9 @@ Do NOT include any text outside the JSON array.
 def _get_llm() -> ChatGroq:
     """Return a configured ChatGroq instance."""
     return ChatGroq(
-        model="llama-3.1-8b-instant",
+        model=settings.GROQ_MODEL,
         api_key=settings.GROQ_API_KEY,
-        temperature=0.2,
+        temperature=0.0,
         max_tokens=2048,
     )
 
@@ -113,40 +101,84 @@ def _prepare_code_for_review(
     return "\n\n".join(parts)
 
 
-def _parse_review_response(raw: str) -> list[dict[str, Any]]:
-    """Extract a JSON array from the LLM response.
-
-    Handles cases where the model wraps the JSON in markdown code fences
-    or includes explanatory text.
-    """
-    # Try direct parse first
-    raw_stripped = raw.strip()
-    try:
-        parsed = json.loads(raw_stripped)
-        if isinstance(parsed, list):
-            return parsed
-    except json.JSONDecodeError:
-        pass
-
-    # Try extracting from a fenced code block
-    match = re.search(r"```(?:json)?\s*\n?(.*?)```", raw_stripped, re.DOTALL)
+def _clean_and_repair_json(text: str) -> str:
+    """Remove comments, markdown wrappers, and trailing commas from JSON string."""
+    # Strip markdown code blocks
+    match = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
     if match:
+        text = match.group(1)
+    
+    text = text.strip()
+    # Strip single line comments
+    text = re.sub(r"//.*?\n", "\n", text)
+    # Strip multi line comments
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    # Strip trailing commas
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+    return text.strip()
+
+
+def _normalize_issue(item: Any) -> dict[str, Any] | None:
+    """Validate and sanitize a single review issue dict."""
+    if not isinstance(item, dict):
+        return None
+    severity = str(item.get("severity", "info")).lower()
+    if severity not in ("critical", "warning", "info"):
+        severity = "info"
+    return {
+        "file": str(item.get("file", "N/A")),
+        "line": item.get("line"),
+        "severity": severity,
+        "message": str(item.get("message", "Potential issue identified")),
+        "suggestion": str(item.get("suggestion", "")),
+    }
+
+
+def _parse_review_response(raw: str) -> list[dict[str, Any]]:
+    """Extract and validate a JSON array of issues from the LLM response."""
+    raw_cleaned = _clean_and_repair_json(raw)
+
+    # 1. Try parsing directly or from outer brackets
+    for candidate in [raw_cleaned, raw.strip()]:
         try:
-            parsed = json.loads(match.group(1).strip())
+            parsed = json.loads(candidate)
             if isinstance(parsed, list):
-                return parsed
-        except json.JSONDecodeError:
+                valid = [_normalize_issue(x) for x in parsed if _normalize_issue(x) is not None]
+                return valid
+            if isinstance(parsed, dict):
+                # If wrapped in {"issues": [...]} or similar
+                for val in parsed.values():
+                    if isinstance(val, list):
+                        valid = [_normalize_issue(x) for x in val if _normalize_issue(x) is not None]
+                        return valid
+        except Exception:
             pass
 
-    # Last resort: look for the outermost [ … ]
-    bracket_match = re.search(r"\[.*]", raw_stripped, re.DOTALL)
+    # 2. Extract outermost [...] block
+    bracket_match = re.search(r"\[.*\]", raw_cleaned, re.DOTALL)
     if bracket_match:
         try:
             parsed = json.loads(bracket_match.group(0))
             if isinstance(parsed, list):
-                return parsed
-        except json.JSONDecodeError:
+                valid = [_normalize_issue(x) for x in parsed if _normalize_issue(x) is not None]
+                return valid
+        except Exception:
             pass
+
+    # 3. Fallback: extract individual JSON objects {...}
+    obj_matches = re.finditer(r"\{[^{}]*\}", raw_cleaned)
+    fallback_items: list[dict[str, Any]] = []
+    for m in obj_matches:
+        try:
+            item = json.loads(m.group(0))
+            normalized = _normalize_issue(item)
+            if normalized and ("message" in item or "file" in item):
+                fallback_items.append(normalized)
+        except Exception:
+            continue
+
+    if fallback_items:
+        return fallback_items
 
     logger.warning("Failed to parse review JSON — returning raw text as single issue")
     return [
@@ -155,7 +187,7 @@ def _parse_review_response(raw: str) -> list[dict[str, Any]]:
             "line": None,
             "severity": "info",
             "message": "Review output could not be parsed as structured JSON.",
-            "suggestion": raw_stripped[:500],
+            "suggestion": raw.strip()[:500],
         }
     ]
 

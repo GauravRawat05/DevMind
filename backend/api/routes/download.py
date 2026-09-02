@@ -77,7 +77,7 @@ async def download_job_documentation(
 )
 async def download_full_report(
     job_id: str,
-    format: str = Query("pdf", regex="^(pdf|docx)$", description="Report format: 'pdf' or 'docx'"),
+    format: str = Query("pdf", pattern="^(pdf|docx)$", description="Report format: 'pdf' or 'docx'"),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Generate and download a comprehensive report combining Documentation,

@@ -32,7 +32,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 # 2. MongoDB Client
 logger.info("Initializing async MongoDB client")
-mongo_client = AsyncIOMotorClient(settings.MONGODB_URL, serverSelectionTimeoutMS=2000)
+mongo_client = AsyncIOMotorClient(settings.MONGODB_URL, serverSelectionTimeoutMS=5000)
 # Determine DB name from URI or default to 'devmind'
 try:
     mongo_db = mongo_client.get_default_database()

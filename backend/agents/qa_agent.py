@@ -42,7 +42,7 @@ Keep answers concise, accurate, and well-structured in Markdown.
 def _get_llm() -> ChatGroq:
     """Return a configured ChatGroq instance."""
     return ChatGroq(
-        model="llama-3.1-8b-instant",
+        model=settings.GROQ_MODEL,
         api_key=settings.GROQ_API_KEY,
         temperature=0.3,
         max_tokens=2048,

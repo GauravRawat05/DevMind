@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     # 2. AI & LLM Inference
     GROQ_API_KEY: Optional[str] = None
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
     HUGGINGFACE_API_KEY: Optional[str] = None
 
     # 3. Third-party APIs
